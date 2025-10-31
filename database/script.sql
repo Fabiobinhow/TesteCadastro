@@ -1,0 +1,8 @@
+CREATE DATABASE IF NOT EXISTS cadastro_db;
+USE cadastro_db;
+
+CREATE TABLE IF NOT EXISTS usuarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100),
+    email VARCHAR(100)
+);

@@ -1,10 +1,12 @@
-import mysql.connector
-from mysql.connector import errorcode
+from dotenv import load_dotenv
+import os, mysql.connector
 
-def get_connection(host='localhost', user='root', password='35272114', database='cadastro_db'):
-    return mysql.connector.connect(
-        host=host,
-        user=user,
-        password=password,
-        database=database
-    )
+load_dotenv()
+
+db = mysql.connector.connect(
+    host=os.getenv("DB_HOST"),
+    user=os.getenv("DB_USER"),
+    password=os.getenv("DB_PASSWORD"),
+    database=os.getenv("DB_NAME"),
+    port=os.getenv("DB_PORT")
+)

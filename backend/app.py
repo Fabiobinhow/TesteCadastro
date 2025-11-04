@@ -5,53 +5,56 @@ from mysql.connector import errorcode
 import os
 import time
 
-# Config de conexão (já com os dados fornecidos)
+# --- Configuração dinâmica (usa variáveis de ambiente do Render/Railway) ---
 DB_CONFIG = {
-    "host": "localhost",
-    "user": "root",
-    "password": "35272114",
-    "database": "cadastro_db"
+    "host": os.getenv("DB_HOST", "localhost"),
+    "user": os.getenv("DB_USER", "root"),
+    "password": os.getenv("DB_PASSWORD", "35272114"),
+    "database": os.getenv("DB_NAME", "cadastro_db"),
+    "port": int(os.getenv("DB_PORT", 3306))
 }
 
+# --- Função para garantir o banco/tabela (opcional no deploy) ---
 def ensure_database():
-    # Conecta sem database para criar o DB se necessário
-    cnx = None
-    for attempt in range(3):
-        try:
-            cnx = mysql.connector.connect(
-                host=DB_CONFIG['host'],
-                user=DB_CONFIG['user'],
-                password=DB_CONFIG['password']
+    try:
+        cnx = mysql.connector.connect(
+            host=DB_CONFIG["host"],
+            user=DB_CONFIG["user"],
+            password=DB_CONFIG["password"],
+            port=DB_CONFIG["port"]
+        )
+        cursor = cnx.cursor()
+        cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_CONFIG['database']}")
+        cursor.close()
+        cnx.close()
+
+        cnx = mysql.connector.connect(**DB_CONFIG)
+        cursor = cnx.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nome VARCHAR(100),
+                email VARCHAR(100)
             )
-            break
-        except mysql.connector.Error as err:
-            print("Erro ao conectar ao MySQL:", err)
-            time.sleep(1)
-    if cnx is None:
-        raise RuntimeError("Não foi possível conectar ao MySQL. Verifique se o serviço está rodando e as credenciais.")
+        """)
+        cnx.commit()
+        cursor.close()
+        cnx.close()
+        print("✅ Banco e tabela verificados com sucesso!")
+    except mysql.connector.Error as err:
+        print("⚠️ Erro ao verificar banco:", err)
 
-    cursor = cnx.cursor()
-    cursor.execute("CREATE DATABASE IF NOT EXISTS {}".format(DB_CONFIG['database']))
-    cursor.close()
-    cnx.close()
-
-    # Agora cria a tabela se não existir
-    cnx = mysql.connector.connect(**DB_CONFIG)
-    cursor = cnx.cursor()
-    cursor.execute("""CREATE TABLE IF NOT EXISTS usuarios (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        nome VARCHAR(100),
-        email VARCHAR(100)
-    )""")
-    cnx.commit()
-    cursor.close()
-    cnx.close()
-
+# --- Função utilitária de conexão ---
 def get_conn():
     return mysql.connector.connect(**DB_CONFIG)
 
+# --- App Flask ---
 app = Flask(__name__)
 CORS(app)
+
+@app.route('/')
+def home():
+    return jsonify({"mensagem": "API Flask + Railway funcionando 🚀"})
 
 @app.route('/usuarios', methods=['POST'])
 def add_usuario():
@@ -79,8 +82,7 @@ def listar_usuarios():
     cnx.close()
     return jsonify(usuarios)
 
+# --- Execução local ---
 if __name__ == '__main__':
-    print('Verificando banco de dados e tabelas...')
     ensure_database()
-    print('Iniciando o backend Flask em http://127.0.0.1:5000')
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)

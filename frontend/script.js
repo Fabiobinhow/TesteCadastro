@@ -1,4 +1,4 @@
-const API_URL = "http://127.0.0.1:5000/usuarios";
+const API_URL = "https://testecadastro-132n.onrender.com/usuarios";
 
 document.getElementById("formCadastro").addEventListener("submit", async (e) => {
   e.preventDefault();
